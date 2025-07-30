@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ cây xác suất — Phân số / Số thập phân</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(120deg, #e0f7fa 0%, #f8fdff 100%);
+      margin: 0;
+      padding: 40px 0;
+    }
+    .toggle-row {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .toggle-row label {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1976d2;
+      margin: 0 10px 0 0;
+    }
+    .mode-btn {
+      padding: 6px 20px;
+      margin-right: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 2px solid #1976d2;
+      background: #e3f2fd;
+      color: #1565c0;
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+    .mode-btn.active {
+      background: #1976d2;
+      color: #fff;
+    }
+    .round-group {
+      display: inline-block;
+      margin-left: 15px;
+      font-size: 15px;
+    }
+    .tree-flex {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 60px;
+      width: 100%;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 190px;
+      gap: 52px;
+      position: relative;
+    }
+    .node {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 3px 14px #0001;
+      padding: 18px 26px 15px 26px;
+      min-width: 120px;
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 0;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .node-title {
+      font-weight: bold;
+      font-size: 19px;
+      margin-bottom: 6px;
+      color: #1976d2;
+      letter-spacing: 1px;
+    }
+    .node-branch {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 3px;
+    }
+    .branch-label {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1976d2;
+      margin-right: 8px;
+    }
+    .branch-label.bar {
+      color: #d32f2f;
+    }
+    /* Phân số */
+    .fraction {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 15px;
+      min-width: 40px;
+      margin-left: 2px;
+      margin-right: 2px;
+    }
+    .fraction .num {
+      border-bottom: 1px solid #555;
+      width: 100%;
+      text-align: center;
+      display: block;
+      padding-bottom: 1px;
+    }
+    .fraction .den {
+      border-bottom: none;
+      text-align: center;
+      display: block;
+      margin-top: 1px;
+    }
+    .fraction input {
+      border: none;
+      border-radius: 3px;
+      text-align: center;
+      width: 32px;
+      font-size: 15px;
+      background: #f2f9ff;
+    }
+    .fraction input:focus {
+      outline: 2px solid #2196f3;
+    }
+    /* Số thập phân */
+    .dec-input {
+      width: 75px;
+      font-size: 16px;
+      text-align: center;
+      border-radius: 4px;
+      border: 1px solid #1976d2;
+      padding: 2px 4px;
+      background: #f7fbfe;
+      margin: 0 1px;
+    }
+    .dec-input:focus {
+      outline: 2px solid #2196f3;
+    }
+    .leaf-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1976d2;
+      margin-bottom: 5px;
+    }
+    .leaf-prob, .leaf-prob input {
+      font-weight: bold;
+      font-size: 20px;
+      color: #01579b;
+      margin-top: 10px;
+    }
+    .leaf-prob input {
+      width: 95px;
+      text-align: center;
+      border-radius: 4px;
+      border: 1.5px solid #1976d2;
+      padding: 2px 4px;
+      background: #f7fbfe;
+    }
+    .leaf-prob input:focus {
+      outline: 2px solid #2196f3;
+    }
+    .svg-branches {
+      position: absolute;
+      top: 0; left: 0; pointer-events: none;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+    @media (max-width: 1100px) {
+      .tree-flex { flex-direction: column; gap: 25px; align-items: center; }
+      .column { min-width: 140px; gap: 20px; }
+      .svg-branches { display: none; }
+    }
+    @media (max-width: 650px) {
+      body { padding: 10px 0; }
+      .node { min-width: 88px; font-size: 15px; padding: 10px 10px 9px 10px; }
+      .column { gap: 10px; }
+    }
+    #col1 .node {
+      margin-top: 230px;
+    }
+    #col2 { margin-top: 120px; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;margin-bottom:18px;color:#1a237e;">
+    Mô phỏng sơ đồ cây xác suất <br><span style="font-size:15px;color:#1976d2;">(Chọn chế độ nhập: phân số hoặc số thập phân)</span>
+  </h2>
+  <div class="toggle-row">
+    <label>Chế độ nhập:</label>
+    <button id="btn-fraction" class="mode-btn active" onclick="setMode('fraction')">Phân số</button>
+    <button id="btn-decimal" class="mode-btn" onclick="setMode('decimal')">Số thập phân</button>
+    <span class="round-group" id="round-group" style="display:none;">
+      <label for="roundSelect">Làm tròn:</label>
+      <select id="roundSelect" onchange="onChangeRound()">
+        <option value="2">2 chữ số thập phân</option>
+        <option value="3">3 chữ số thập phân</option>
+        <option value="4" selected>4 chữ số thập phân</option>
+      </select>
+    </span>
+  </div>
+  <div style="position:relative;max-width:1100px;margin:auto;">
+    <div class="tree-flex" id="tree-flex">
+      <!-- Cột 1: Gốc -->
+      <div class="column" id="col1">
+        <!-- Nút phân số -->
+        <div class="node" id="node1-1-fraction">
+          <div class="node-title">Bước 1</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">A:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="a_num" value="2" onchange="onInputA()" oninput="onInputA()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="a_den" value="5" onchange="onInputA()" oninput="onInputA()">
+                <span class="den"></span>
+              </span>
+            </div>
+            <div>
+              <span class="branch-label bar">A̅:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="a_bar_num" value="3" onchange="onInputABar()" oninput="onInputABar()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="a_bar_den" value="5" onchange="onInputABar()" oninput="onInputABar()">
+                <span class="den"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <!-- Nút thập phân -->
+        <div class="node" id="node1-1-decimal" style="display:none;">
+          <div class="node-title">Bước 1</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">A:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pA" value="0.40" onchange="onInputP()" oninput="onInputP()">
+            </div>
+            <div>
+              <span class="branch-label bar">A̅:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pABar" value="0.60" onchange="onInputPBar()" oninput="onInputPBar()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Cột 2 -->
+      <div class="column" id="col2">
+        <!-- Phân số -->
+        <div class="node" id="node2-1-fraction">
+          <div class="node-title">Sau A</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">B:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="b_num" value="4" onchange="onInputB()" oninput="onInputB()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="b_den" value="6" onchange="onInputB()" oninput="onInputB()">
+                <span class="den"></span>
+              </span>
+            </div>
+            <div>
+              <span class="branch-label bar">B̅:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="b_bar_num" value="2" onchange="onInputBBar()" oninput="onInputBBar()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="b_bar_den" value="6" onchange="onInputBBar()" oninput="onInputBBar()">
+                <span class="den"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="node" id="node2-2-fraction">
+          <div class="node-title">Sau A̅</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">B:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="b2_num" value="3" onchange="onInputB2()" oninput="onInputB2()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="b2_den" value="6" onchange="onInputB2()" oninput="onInputB2()">
+                <span class="den"></span>
+              </span>
+            </div>
+            <div>
+              <span class="branch-label bar">B̅:</span>
+              <span class="fraction">
+                <input class="prob-input" type="number" min="0" id="b2_bar_num" value="3" onchange="onInputB2Bar()" oninput="onInputB2Bar()">
+                <span class="num"></span>
+                <input class="prob-input" type="number" min="1" id="b2_bar_den" value="6" onchange="onInputB2Bar()" oninput="onInputB2Bar()">
+                <span class="den"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <!-- Thập phân -->
+        <div class="node" id="node2-1-decimal" style="display:none;">
+          <div class="node-title">Sau A</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">B:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pB" value="0.67" onchange="onInputP()" oninput="onInputP()">
+            </div>
+            <div>
+              <span class="branch-label bar">B̅:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pBBar" value="0.33" onchange="onInputPBar()" oninput="onInputPBar()">
+            </div>
+          </div>
+        </div>
+        <div class="node" id="node2-2-decimal" style="display:none;">
+          <div class="node-title">Sau A̅</div>
+          <div class="node-branch">
+            <div>
+              <span class="branch-label">B:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pB2" value="0.50" onchange="onInputP()" oninput="onInputP()">
+            </div>
+            <div>
+              <span class="branch-label bar">B̅:</span>
+              <input class="dec-input" type="number" min="0" max="1" step="0.0001" id="pB2Bar" value="0.50" onchange="onInputPBar()" oninput="onInputPBar()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Cột 3: Lá -->
+      <div class="column" id="col3">
+        <!-- Lá phân số -->
+        <div class="node" id="node3-1-fraction">
+          <div class="leaf-title">AB</div>
+          <div class="leaf-prob" id="p_ab"></div>
+        </div>
+        <div class="node" id="node3-2-fraction">
+          <div class="leaf-title">AB̅</div>
+          <div class="leaf-prob" id="p_abbar"></div>
+        </div>
+        <div class="node" id="node3-3-fraction">
+          <div class="leaf-title">A̅B</div>
+          <div class="leaf-prob" id="p_abarb"></div>
+        </div>
+        <div class="node" id="node3-4-fraction">
+          <div class="leaf-title">A̅B̅</div>
+          <div class="leaf-prob" id="p_abarbbar"></div>
+        </div>
+        <!-- Lá thập phân -->
+        <div class="node" id="node3-1-decimal" style="display:none;">
+          <div class="leaf-title">AB</div>
+          <div class="leaf-prob"><input type="number" min="0" max="1" step="0.0001" id="leaf1" value="0.268" onchange="onLeafChange(0)"></div>
+        </div>
+        <div class="node" id="node3-2-decimal" style="display:none;">
+          <div class="leaf-title">AB̅</div>
+          <div class="leaf-prob"><input type="number" min="0" max="1" step="0.0001" id="leaf2" value="0.132" onchange="onLeafChange(1)"></div>
+        </div>
+        <div class="node" id="node3-3-decimal" style="display:none;">
+          <div class="leaf-title">A̅B</div>
+          <div class="leaf-prob"><input type="number" min="0" max="1" step="0.0001" id="leaf3" value="0.3000" onchange="onLeafChange(2)"></div>
+        </div>
+        <div class="node" id="node3-4-decimal" style="display:none;">
+          <div class="leaf-title">A̅B̅</div>
+          <div class="leaf-prob"><input type="number" min="0" max="1" step="0.0001" id="leaf4" value="0.3000" onchange="onLeafChange(3)"></div>
+        </div>
+      </div>
+      <!-- SVG đường nhánh -->
+      <svg class="svg-branches" id="svg-branches"></svg>
+    </div>
+  </div>
+
+  <!-- KẾT QUẢ XÁC SUẤT BAYES -->
+  <div style="max-width:540px;margin:35px auto 0 auto;padding:22px 20px 20px 20px;background:#fff;border-radius:14px;box-shadow:0 2px 13px #0002;">
+    <div style="font-weight:bold;font-size:18px;color:#1565c0;margin-bottom:10px;text-align:center;">
+      Các xác suất mở rộng (theo công thức Bayes)
+    </div>
+    <table style="width:100%;font-size:16px;border-collapse:collapse;">
+      <tr>
+        <td style="padding:5px 0;">P(B) = </td>
+        <td id="probPB"></td>
+        <td style="padding:5px 0 5px 24px;">P(B̅) = </td>
+        <td id="probPBbar"></td>
+      </tr>
+      <tr style="height:10px;"></tr>
+      <tr>
+        <td>P(A|B) = </td>
+        <td id="probA_given_B"></td>
+        <td>P(A̅|B) = </td>
+        <td id="probAbar_given_B"></td>
+      </tr>
+      <tr>
+        <td>P(A|B̅) = </td>
+        <td id="probA_given_Bbar"></td>
+        <td>P(A̅|B̅) = </td>
+        <td id="probAbar_given_Bbar"></td>
+      </tr>
+    </table>
+  </div>
+  <!-- /KẾT QUẢ BAYES -->
+
+<script>
+  // --- Chuyển đổi chế độ ---
+  let mode = 'fraction'; // hoặc 'decimal'
+
+  function setMode(m) {
+    mode = m;
+    // Nút chọn
+    document.getElementById('btn-fraction').classList.toggle('active', m==='fraction');
+    document.getElementById('btn-decimal').classList.toggle('active', m==='decimal');
+    // Hiện/ẩn phân số
+    ['node1-1-fraction','node2-1-fraction','node2-2-fraction','node3-1-fraction','node3-2-fraction','node3-3-fraction','node3-4-fraction'].forEach(id => {
+      document.getElementById(id).style.display = (m==='fraction') ? '' : 'none';
+    });
+    // Hiện/ẩn thập phân
+    ['node1-1-decimal','node2-1-decimal','node2-2-decimal','node3-1-decimal','node3-2-decimal','node3-3-decimal','node3-4-decimal'].forEach(id => {
+      document.getElementById(id).style.display = (m==='decimal') ? '' : 'none';
+    });
+    // Làm tròn số
+    document.getElementById('round-group').style.display = (m==='decimal') ? '' : 'none';
+
+    setTimeout(drawBranches, 220);
+    updateBayes();
+  }
+
+  // ----------- PHÂN SỐ -----------
+  function getProb(id_num, id_den) {
+    const num = parseInt(document.getElementById(id_num).value, 10);
+    const den = parseInt(document.getElementById(id_den).value, 10);
+    if (den === 0 || isNaN(num) || isNaN(den)) return 0;
+    return num / den;
+  }
+  function toFrac(val) {
+    if (isNaN(val) || val === 0) return '0';
+    let best = { n: 0, d: 1, diff: Math.abs(val) };
+    for (let d = 1; d <= 100; d++) {
+      let n = Math.round(val * d);
+      if (n < 0) continue;
+      let diff = Math.abs(val - n / d);
+      if (diff < best.diff) best = { n, d, diff };
+    }
+    function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+    let g = gcd(best.n, best.d);
+    return `<span class="fraction"><span class="num">${best.n / g}</span><span class="den">${best.d / g}</span></span>`;
+  }
+
+  function onInputA() {
+    let num = parseInt(document.getElementById('a_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('a_den').value, 10) || 1;
+    document.getElementById('a_bar_num').value = den - num;
+    document.getElementById('a_bar_den').value = den;
+    updateProbs();
+  }
+  function onInputABar() {
+    let num = parseInt(document.getElementById('a_bar_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('a_bar_den').value, 10) || 1;
+    document.getElementById('a_num').value = den - num;
+    document.getElementById('a_den').value = den;
+    updateProbs();
+  }
+  function onInputB() {
+    let num = parseInt(document.getElementById('b_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('b_den').value, 10) || 1;
+    document.getElementById('b_bar_num').value = den - num;
+    document.getElementById('b_bar_den').value = den;
+    updateProbs();
+  }
+  function onInputBBar() {
+    let num = parseInt(document.getElementById('b_bar_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('b_bar_den').value, 10) || 1;
+    document.getElementById('b_num').value = den - num;
+    document.getElementById('b_den').value = den;
+    updateProbs();
+  }
+  function onInputB2() {
+    let num = parseInt(document.getElementById('b2_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('b2_den').value, 10) || 1;
+    document.getElementById('b2_bar_num').value = den - num;
+    document.getElementById('b2_bar_den').value = den;
+    updateProbs();
+  }
+  function onInputB2Bar() {
+    let num = parseInt(document.getElementById('b2_bar_num').value, 10) || 0;
+    let den = parseInt(document.getElementById('b2_bar_den').value, 10) || 1;
+    document.getElementById('b2_num').value = den - num;
+    document.getElementById('b2_den').value = den;
+    updateProbs();
+  }
+  function updateProbs() {
+    // Nhánh trên
+    const pA = getProb('a_num', 'a_den');
+    const pABar = getProb('a_bar_num', 'a_bar_den');
+    // Sau A
+    const pB = getProb('b_num', 'b_den');
+    const pBBar = getProb('b_bar_num', 'b_bar_den');
+    // Sau A̅
+    const pB2 = getProb('b2_num', 'b2_den');
+    const pB2Bar = getProb('b2_bar_num', 'b2_bar_den');
+    // Lá
+    const pab = pA * pB;
+    const pabb = pA * pBBar;
+    const pabarb = pABar * pB2;
+    const pabarbbar = pABar * pB2Bar;
+
+    document.getElementById('p_ab').innerHTML = toFrac(pab);
+    document.getElementById('p_abbar').innerHTML = toFrac(pabb);
+    document.getElementById('p_abarb').innerHTML = toFrac(pabarb);
+    document.getElementById('p_abarbbar').innerHTML = toFrac(pabarbbar);
+    updateBayes();
+  }
+
+  // ----------- SỐ THẬP PHÂN -----------
+  function getRoundN() {
+    let sel = document.getElementById('roundSelect');
+    return sel ? parseInt(sel.value) : 4;
+  }
+  function roundN(x, n) {
+    if (isNaN(x)) return '';
+    if (typeof n === "undefined") n = getRoundN();
+    return Math.round(x * Math.pow(10, n)) / Math.pow(10, n);
+  }
+  function onChangeRound() {
+    ['pA','pABar','pB','pBBar','pB2','pB2Bar','leaf1','leaf2','leaf3','leaf4'].forEach(id=>{
+      let el = document.getElementById(id);
+      if (el) el.value = roundN(parseFloat(el.value));
+    });
+    updateLeaves();
+  }
+  function onInputP() {
+    document.getElementById('pABar').value = roundN(1 - parseFloat(document.getElementById('pA').value));
+    document.getElementById('pBBar').value = roundN(1 - parseFloat(document.getElementById('pB').value));
+    document.getElementById('pB2Bar').value = roundN(1 - parseFloat(document.getElementById('pB2').value));
+    updateLeaves();
+  }
+  function onInputPBar() {
+    document.getElementById('pA').value = roundN(1 - parseFloat(document.getElementById('pABar').value));
+    document.getElementById('pB').value = roundN(1 - parseFloat(document.getElementById('pBBar').value));
+    document.getElementById('pB2').value = roundN(1 - parseFloat(document.getElementById('pB2Bar').value));
+    updateLeaves();
+  }
+  function updateLeaves() {
+    let pA = parseFloat(document.getElementById('pA').value);
+    let pB = parseFloat(document.getElementById('pB').value);
+    let pABar = parseFloat(document.getElementById('pABar').value);
+    let pB2 = parseFloat(document.getElementById('pB2').value);
+    let leaf1 = roundN(pA * pB);
+    let leaf2 = roundN(pA * (1 - pB));
+    let leaf3 = roundN(pABar * pB2);
+    let leaf4 = roundN(pABar * (1 - pB2));
+    document.getElementById('leaf1').value = leaf1;
+    document.getElementById('leaf2').value = leaf2;
+    document.getElementById('leaf3').value = leaf3;
+    document.getElementById('leaf4').value = leaf4;
+    updateBayes();
+  }
+  function onLeafChange(idx) {
+    let pA = parseFloat(document.getElementById('pA').value);
+    let pABar = parseFloat(document.getElementById('pABar').value);
+    // Nhánh A (lá 1,2)
+    if (idx === 0 || idx === 1) {
+      let leaf1 = parseFloat(document.getElementById('leaf1').value);
+      let leaf2 = parseFloat(document.getElementById('leaf2').value);
+      let sum = roundN(leaf1 + leaf2);
+      if (sum === 0) sum = 0.0001;
+      if (idx === 0) {
+        let pB = roundN(leaf1 / pA);
+        document.getElementById('pB').value = pB;
+        document.getElementById('pBBar').value = roundN(1 - pB);
+        document.getElementById('leaf2').value = roundN(pA * (1 - pB));
+      } else {
+        let pB = roundN(1 - leaf2 / pA);
+        document.getElementById('pB').value = pB;
+        document.getElementById('pBBar').value = roundN(1 - pB);
+        document.getElementById('leaf1').value = roundN(pA * pB);
+      }
+    }
+    // Nhánh A̅ (lá 3,4)
+    else {
+      let leaf3 = parseFloat(document.getElementById('leaf3').value);
+      let leaf4 = parseFloat(document.getElementById('leaf4').value);
+      let sum = roundN(leaf3 + leaf4);
+      if (sum === 0) sum = 0.0001;
+      if (idx === 2) {
+        let pB2 = roundN(leaf3 / pABar);
+        document.getElementById('pB2').value = pB2;
+        document.getElementById('pB2Bar').value = roundN(1 - pB2);
+        document.getElementById('leaf4').value = roundN(pABar * (1 - pB2));
+      } else {
+        let pB2 = roundN(1 - leaf4 / pABar);
+        document.getElementById('pB2').value = pB2;
+        document.getElementById('pB2Bar').value = roundN(1 - pB2);
+        document.getElementById('leaf3').value = roundN(pABar * pB2);
+      }
+    }
+    updateBayes();
+  }
+
+  // ----------- BAYES (cả 2 mode) -----------
+  function updateBayes() {
+    if (mode === 'fraction') {
+      // Lá phân số
+      const pA = getProb('a_num', 'a_den');
+      const pABar = getProb('a_bar_num', 'a_bar_den');
+      const pB = getProb('b_num', 'b_den');
+      const pBBar = getProb('b_bar_num', 'b_bar_den');
+      const pB2 = getProb('b2_num', 'b2_den');
+      const pB2Bar = getProb('b2_bar_num', 'b2_bar_den');
+      const ab = pA * pB;
+      const abb = pA * pBBar;
+      const abar_b = pABar * pB2;
+      const abar_bbar = pABar * pB2Bar;
+      const PB = ab + abar_b;
+      const PBbar = abb + abar_bbar;
+      // Bayes
+      let P_A_given_B = PB > 0 ? ab / PB : '';
+      let P_Abar_given_B = PB > 0 ? abar_b / PB : '';
+      let P_A_given_Bbar = PBbar > 0 ? abb / PBbar : '';
+      let P_Abar_given_Bbar = PBbar > 0 ? abar_bbar / PBbar : '';
+      document.getElementById('probPB').innerHTML = toFrac(PB);
+      document.getElementById('probPBbar').innerHTML = toFrac(PBbar);
+      document.getElementById('probA_given_B').innerHTML = toFrac(P_A_given_B);
+      document.getElementById('probAbar_given_B').innerHTML = toFrac(P_Abar_given_B);
+      document.getElementById('probA_given_Bbar').innerHTML = toFrac(P_A_given_Bbar);
+      document.getElementById('probAbar_given_Bbar').innerHTML = toFrac(P_Abar_given_Bbar);
+    } else {
+      // Lá thập phân
+      let ab  = parseFloat(document.getElementById('leaf1').value);
+      let abb = parseFloat(document.getElementById('leaf2').value);
+      let abar_b  = parseFloat(document.getElementById('leaf3').value);
+      let abar_bbar = parseFloat(document.getElementById('leaf4').value);
+      let n = getRoundN();
+      let PB = ab + abar_b;
+      let PBbar = abb + abar_bbar;
+      let P_A_given_B = PB > 0 ? ab / PB : '';
+      let P_Abar_given_B = PB > 0 ? abar_b / PB : '';
+      let P_A_given_Bbar = PBbar > 0 ? abb / PBbar : '';
+      let P_Abar_given_Bbar = PBbar > 0 ? abar_bbar / PBbar : '';
+      document.getElementById('probPB').innerText = roundN(PB, n);
+      document.getElementById('probPBbar').innerText = roundN(PBbar, n);
+      document.getElementById('probA_given_B').innerText = roundN(P_A_given_B, n);
+      document.getElementById('probAbar_given_B').innerText = roundN(P_Abar_given_B, n);
+      document.getElementById('probA_given_Bbar').innerText = roundN(P_A_given_Bbar, n);
+      document.getElementById('probAbar_given_Bbar').innerText = roundN(P_Abar_given_Bbar, n);
+    }
+  }
+
+  // ----------- VẼ ĐƯỜNG NỐI -----------
+  function drawBranches() {
+    const svg = document.getElementById('svg-branches');
+    svg.innerHTML = '';
+    // Tùy mode mà lấy node
+    let ids1, ids2, ids3;
+    if (mode === 'fraction') {
+      ids1 = ['node1-1-fraction'];
+      ids2 = ['node2-1-fraction','node2-2-fraction'];
+      ids3 = ['node3-1-fraction','node3-2-fraction','node3-3-fraction','node3-4-fraction'];
+    } else {
+      ids1 = ['node1-1-decimal'];
+      ids2 = ['node2-1-decimal','node2-2-decimal'];
+      ids3 = ['node3-1-decimal','node3-2-decimal','node3-3-decimal','node3-4-decimal'];
+    }
+    const node1 = document.getElementById(ids1[0]);
+    const [node2_1, node2_2] = [document.getElementById(ids2[0]), document.getElementById(ids2[1])];
+    const [node3_1, node3_2, node3_3, node3_4] = [document.getElementById(ids3[0]), document.getElementById(ids3[1]), document.getElementById(ids3[2]), document.getElementById(ids3[3])];
+    function midRight(el) {
+      const rect = el.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+      return { x: rect.right - svgRect.left, y: rect.top + rect.height / 2 - svgRect.top };
+    }
+    function midLeft(el) {
+      const rect = el.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+      return { x: rect.left - svgRect.left, y: rect.top + rect.height / 2 - svgRect.top };
+    }
+    let color = "#1976d277";
+    // col1 sang col2
+    svg.innerHTML += `<line x1="${midRight(node1).x}" y1="${midRight(node1).y}" x2="${midLeft(node2_1).x}" y2="${midLeft(node2_1).y}" stroke="${color}" stroke-width="3" />`;
+    svg.innerHTML += `<line x1="${midRight(node1).x}" y1="${midRight(node1).y}" x2="${midLeft(node2_2).x}" y2="${midLeft(node2_2).y}" stroke="${color}" stroke-width="3" />`;
+    // node2_1 sang node3_1, node3_2
+    svg.innerHTML += `<line x1="${midRight(node2_1).x}" y1="${midRight(node2_1).y}" x2="${midLeft(node3_1).x}" y2="${midLeft(node3_1).y}" stroke="${color}" stroke-width="2.5" />`;
+    svg.innerHTML += `<line x1="${midRight(node2_1).x}" y1="${midRight(node2_1).y}" x2="${midLeft(node3_2).x}" y2="${midLeft(node3_2).y}" stroke="${color}" stroke-width="2.5" />`;
+    // node2_2 sang node3_3, node3_4
+    svg.innerHTML += `<line x1="${midRight(node2_2).x}" y1="${midRight(node2_2).y}" x2="${midLeft(node3_3).x}" y2="${midLeft(node3_3).y}" stroke="${color}" stroke-width="2.5" />`;
+    svg.innerHTML += `<line x1="${midRight(node2_2).x}" y1="${midRight(node2_2).y}" x2="${midLeft(node3_4).x}" y2="${midLeft(node3_4).y}" stroke="${color}" stroke-width="2.5" />`;
+  }
+
+  // --- Khởi tạo ---
+  window.onload = function () {
+    setMode('fraction');
+    onInputA();
+    onInputB();
+    onInputB2();
+    setTimeout(drawBranches, 240);
+  };
+  window.onresize = () => setTimeout(drawBranches, 300);
+</script>
+</body>
+</html>
